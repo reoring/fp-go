@@ -503,6 +503,31 @@ func EitherGetOrElse[E, A any](onLeft func(E) A) func(Either[E, A]) A {
 	return EitherFold(onLeft, F.Identity[A])
 }
 
+// EitherMonadGetOrElse returns the Right value of fa, or the result of onLeft applied to the Left value.
+// This is the monadic form of EitherGetOrElse.
+//
+// Type Parameters:
+//   - E: the Left type
+//   - A: the Right type
+//
+// Parameters:
+//   - fa: the Either to extract from
+//   - onLeft: computes the fallback from the Left value; not called for Right
+//
+// Returns:
+//   - A: the Right value or the fallback
+//
+// See Also:
+//   - EitherGetOrElse: the curried form
+//
+//go:inline
+func EitherMonadGetOrElse[E, A any](fa Either[E, A], onLeft func(E) A) A {
+	if fa.l {
+		return onLeft(fa.e)
+	}
+	return fa.a
+}
+
 // EitherReduce folds an Either into a single value using a reducer function.
 // Returns the initial value for Left, or applies the reducer to the Right value.
 func EitherReduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {

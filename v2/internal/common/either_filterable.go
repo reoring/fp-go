@@ -165,6 +165,32 @@ func EitherFilter[E, A any](p Predicate[A], empty E) EitherOperator[E, A, A] {
 	}
 }
 
+// EitherMonadFilter keeps a Right whose value satisfies p, turns a Right that fails p into Left(empty),
+// and returns a Left unchanged. This is the monadic form of EitherFilter.
+//
+// Type Parameters:
+//   - E: the Left type
+//   - A: the Right type
+//
+// Parameters:
+//   - fa: the Either to test
+//   - p: the predicate the Right value must satisfy
+//   - empty: the Left value used when p fails
+//
+// Returns:
+//   - Either[E, A]: fa when it is Left or p holds, Left(empty) otherwise
+//
+// See Also:
+//   - EitherFilter: the curried form
+//
+//go:inline
+func EitherMonadFilter[E, A any](fa Either[E, A], p Predicate[A], empty E) Either[E, A] {
+	if fa.l || p(fa.a) {
+		return fa
+	}
+	return EitherLeft[A](empty)
+}
+
 // EitherFilterMap combines filtering and mapping operations for [Either] values using an [Option]-returning function.
 // It returns a function that takes an Either[E, A] and produces an Either[E, B], where Right values
 // are transformed by applying the function f. If f returns Some(B), the result is Right(B). If f returns
