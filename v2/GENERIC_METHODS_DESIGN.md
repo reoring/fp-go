@@ -1,6 +1,7 @@
 # Generic Methods Design (Go 1.27)
 
-Status: proposal. Scope: `v2` only; the root (v1) module is frozen.
+Status: in progress — cleanup and `Option` done; `Either`, `Pair`, optics
+matrix and docs pending. Scope: `v2` only; the root (v1) module is frozen.
 
 ## Table of Contents
 
@@ -105,8 +106,8 @@ either/core_pointers.go:21:6: Either redeclared in this block
         either/core.go:22:2: other declaration of Either
 ```
 
-They are orphaned code. `Either` therefore has exactly one implementation and
-methods need to be written once, in `internal/common`.
+They were orphaned code and have been deleted. `Either` therefore has exactly
+one implementation and methods need to be written once, in `internal/common`.
 
 ## Constraints
 
@@ -145,11 +146,39 @@ structs, which contradicts the alias design and the performance rationale in
 ### Shapes that cannot be methods
 
 - `Flatten`: needs receiver `Option[Option[A]]`. Use `Chain(F.Identity)`.
-- `Ap` in fp-ts orientation: needs receiver `Option[func(A) B]`. Only
-  `fa.Ap(fab)` is expressible (see Open Questions).
+- `Ap`: needs a parameter or receiver of the form `T[func(A) B]`. A method on
+  `Option[A]` whose signature mentions `Option[func(A) B]` makes the method set
+  of `Option[A]` refer to `Option[func(A) B]`, whose `Ap` refers to
+  `Option[func(func(A) B) C]`, and so on. The compiler rejects this:
+  `instantiation cycle: A instantiated as func(A) B`. The same holds for
+  `Either.Ap` and `Pair.Ap`. `Ap` stays a free function only.
 - Type-class interfaces (`monad.Monad`, `internal/chain.Chainable`,
   `internal/functor.Functor`): interface methods stay non-generic, so these
   keep their lifted type parameters.
+
+### Generic aliases in method signatures (Go 1.27.0 compiler bug)
+
+A generic method whose signature uses a generic alias that refers back to the
+receiver type (here `OptionKleisli[A, B] = func(A) Option[B]`) compiles in its
+own package, but every importing package crashes the compiler with
+`fatal error: all goroutines are asleep - deadlock!` in
+`types2.(*Named).unpack` via `newAliasInstance`. Minimal reproduction:
+
+```go
+// package a
+type O[A any] struct{ v A }
+type K[A, B any] = func(A) O[B]
+func (o O[A]) Chain[B any](f K[A, B]) O[B] { return f(o.v) }
+
+// package b
+import "aliasbug/a"
+var X a.O[int] // go build: deadlock
+```
+
+Writing the function type literally (`f func(A) O[B]`) avoids it. Rule: method
+signatures spell out `func(A) Option[B]`, `func(A) Either[E, B]`, etc., instead
+of the `*Kleisli`/`*Operator` aliases. Aliases that do not mention the receiver
+type (`Predicate[A]`) are unaffected.
 
 ### Performance
 
@@ -197,7 +226,7 @@ already hold.
 | `Chain[B](f func(A) Option[B]) Option[B]` | `OptionMonadChain` |
 | `ChainFirst[B](f func(A) Option[B]) Option[A]` | `OptionMonadChainFirst` |
 | `ChainTo[B](mb Option[B]) Option[B]` | `OptionMonadChainTo` |
-| `Ap[B](fab Option[func(A) B]) Option[B]` | `OptionMonadAp(fab, fa)` |
+| ~~`Ap`~~ | not expressible, see "Shapes that cannot be methods" |
 | `Fold[B](onNone func() B, onSome func(A) B) B` | `OptionMonadFold` |
 | `GetOrElse(onNone func() A) A` | `OptionMonadGetOrElse` |
 | `Alt(that func() Option[A]) Option[A]` | `OptionMonadAlt` |
@@ -218,7 +247,7 @@ doc comment on the free function points to `Chain(F.Identity)`.
 | `ChainFirst[B](f func(A) Either[E, B]) Either[E, A]` | `EitherMonadChainFirst` |
 | `ChainTo[B](mb Either[E, B]) Either[E, B]` | `EitherMonadChainTo` |
 | `ChainLeft[E2](f func(E) Either[E2, A]) Either[E2, A]` | `EitherMonadChainLeft` |
-| `Ap[B](fab Either[E, func(A) B]) Either[E, B]` | `EitherMonadAp(fab, fa)` |
+| ~~`Ap`~~ | not expressible, see "Shapes that cannot be methods" |
 | `Fold[B](onLeft func(E) B, onRight func(A) B) B` | `EitherMonadFold` |
 | `GetOrElse(onLeft func(E) A) A` | new `EitherMonadGetOrElse`; only `EitherGetOrElse(onLeft)` (curried) exists today |
 | `Alt(that func() Either[E, A]) Either[E, A]` | `EitherMonadAlt` |
@@ -243,7 +272,7 @@ cannot constrain a receiver type parameter.
 | `BiMap[L1, R1](f func(L) L1, g func(R) R1) Pair[L1, R1]` | `MonadBiMap` |
 | `Swap() Pair[R, L]` | `Swap` |
 | `Chain[R1](sg Semigroup[L], f func(R) Pair[L, R1]) Pair[L, R1]` | `MonadChain` |
-| `Ap[R1](sg Semigroup[L], fab Pair[L, func(R) R1]) Pair[L, R1]` | `MonadAp` |
+| ~~`Ap`~~ | not expressible, see "Shapes that cannot be methods" |
 
 ### Optics completion
 
@@ -270,9 +299,9 @@ Order, one PR each; `go vet ./... && go test ./...` at every step
 (`TestRetryHttp` in the `*/http` packages hits the network and fails
 independently of this work).
 
-1. Cleanup (dead `Either` variants, optics doc drift).
-2. `Option` methods + tests + benchmark. Gate: the benchmark below shows no
-   additional allocation versus direct `MonadMap` calls.
+1. ✅ Cleanup (dead `Either` variants, optics doc drift).
+2. ✅ `Option` methods + tests + benchmark. Gate passed (see "Benchmark
+   results").
 3. `Either` methods + tests.
 4. `Pair` methods + tests.
 5. Optics matrix completion and doc fixes.
@@ -282,14 +311,15 @@ independently of this work).
 
 | Path | Change |
 |------|--------|
-| `internal/common/option_go1_27.go`, `option_go1_27_test.go` | new, tagged |
-| `internal/common/option.go` | new untagged `OptionMonadFilter` |
+| `internal/common/option_go1_27.go` | ✅ new, tagged |
+| `option/option_go1_27_test.go`, `option/examples_methods_go1_27_test.go` | ✅ new, tagged; tests live in `option` so examples document the public type |
+| `internal/common/option.go` | ✅ new untagged `OptionMonadFilter` |
 | `internal/common/either_go1_27.go`, `either_go1_27_test.go` | new, tagged |
 | `internal/common/either.go` | new untagged `EitherMonadGetOrElse`, `EitherMonadFilter` |
 | `pair/pair_go1_27.go`, `pair_go1_27_test.go` | new, tagged |
 | `internal/common/iso.go`, `optional.go` | new untagged `IsoComposeOptional`, `OptionalComposeIso` |
 | `internal/common/iso_go1_27.go`, `optional_go1_27.go` | `Iso.ComposePrism`, `Iso.ComposeOptional`, `Optional.ComposeIso` |
-| `either/core_any.go`, `core_pointers.go`, `idiomatic/result/core_any.go`, `core_pointers.go` | delete |
+| `either/core_any.go`, `core_pointers.go`, `idiomatic/result/core_any.go`, `core_pointers.go` | ✅ deleted |
 | `DESIGN.md`, `option/doc.go`, `either/doc.go`, `pair/doc.go`, `optics/README.md`, `optics/doc.go` | docs |
 
 ### Tests
@@ -305,18 +335,33 @@ Per `AGENTS.md` "Checklist for New Code":
   nested `MonadMap`/`MonadChain`/`MonadFold` calls, run with `-benchmem`.
   Expected: identical ns/op and 0 B/op difference.
 
+### Benchmark results
+
+`go test ./option/ -bench 'Option(Methods|Monad|Pipe)_' -benchmem -count 5`,
+Go 1.27.0, linux/amd64, mean of 5 runs:
+
+| Benchmark | ns/op | B/op | allocs/op |
+|-----------|------:|-----:|----------:|
+| `Methods_MapChainFold` (`opt.Map(f).Chain(g).Fold(h, k)`) | 2.63 | 0 | 0 |
+| `Monad_MapChainFold` (nested `MonadMap`/`MonadChain`/`MonadFold`) | 2.39 | 0 | 0 |
+| `Pipe_MapChainFold` (`F.Pipe3(opt, Map(f), Chain(g), Fold(h, k))`) | 77.11 | 144 | 5 |
+| `Methods_Chain5` | 19.32 | 0 | 0 |
+| `Monad_Chain5` | 20.08 | 0 | 0 |
+
+Methods cost the same as direct `Monad*` calls and are ~30× faster than the
+curried `F.Pipe` style, which allocates one closure per operator.
+
+Compatibility check: with `GOTOOLCHAIN=go1.24.0`, `go vet` and `go test` for
+`option`, `internal/common` and `optics/...` pass (tagged files are excluded).
+
 ## Open Questions
 
-1. **`Ap` orientation.** Only `fa.Ap(fab)` is expressible. fp-ts uses
-   `pipe(fab, ap(fa))`, so the receiver is the opposite operand.
-   Recommendation: include it, document the mapping to `MonadAp(fab, fa)`.
-   Alternative: omit `Ap` from the method surface; do-notation uses `ApS`.
+1. ~~**`Ap` orientation.**~~ Resolved: `Ap` cannot be a method (instantiation
+   cycle), see "Shapes that cannot be methods".
 2. **Docs for alias types.** Package docs enumerate methods (recommended)
    versus moving `Option`/`Either` out of `internal/common` into their
    packages (large move, breaks the shared-implementation layout).
-3. **Dead build variants.** Last touched 2026-09-01 (`037972f4`, docs only);
-   broken since `57a075a6`. Confirm nobody intends to revive them before
-   deleting.
+3. ~~**Dead build variants.**~~ Resolved: deleted.
 4. **`Const`, `Builder`, `Tuple*`.** Expressible but low demand. Defer until
    requested.
 
