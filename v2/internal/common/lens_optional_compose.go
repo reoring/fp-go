@@ -38,3 +38,25 @@ func OptionalComposeLens[S, A, B any](ab Lens[A, B]) OptionalOperator[S, A, B] {
 		OptionalComposeOptional[S, A, B],
 	)
 }
+
+// OptionalComposeIso composes an Optional[S, A] with an Iso[A, B] into an Optional[S, B].
+// The Iso is used as a total Lens, so the result is present exactly when the
+// Optional is.
+//
+// Type Parameters:
+//   - S: the source type of the Optional and of the result
+//   - A: the focus type of the Optional and source type of the Iso
+//   - B: the target type of the Iso and focus type of the result
+//
+// Parameters:
+//   - ab: the Iso from A to B
+//
+// Returns:
+//   - OptionalOperator[S, A, B]: composes a given Optional with ab
+//
+// See Also:
+//   - OptionalComposeLens: the variant for a Lens[A, B]
+//   - IsoAsLens: the conversion applied to ab
+func OptionalComposeIso[S, A, B any](ab Iso[A, B]) OptionalOperator[S, A, B] {
+	return OptionalComposeLens[S](IsoAsLens(ab))
+}

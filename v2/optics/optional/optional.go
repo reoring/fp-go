@@ -174,6 +174,26 @@ func ComposeRef[S, A, B any](ab Optional[A, B]) Operator[*S, A, B] {
 	return common.OptionalComposeOptionalRef[S](ab)
 }
 
+// ComposeIso composes an Optional[S, A] with an Iso[A, B] to produce an Optional[S, B]
+// that is present exactly when the original Optional is.
+//
+// Type Parameters:
+//   - S: The source type
+//   - A: The focus type of the Optional and source type of the Iso
+//   - B: The target type of the Iso and focus type of the result
+//
+// Parameters:
+//   - ab: Iso[A, B] that converts the focus losslessly
+//
+// Returns:
+//   - Operator[S, A, B]: composes a given Optional with ab
+//
+// See Also:
+//   - Compose: for composing with another Optional
+func ComposeIso[S, A, B any](ab common.Iso[A, B]) Operator[S, A, B] {
+	return common.OptionalComposeIso[S](ab)
+}
+
 // FromPredicate creates an optional from getter and setter functions. It checks
 // for optional values and the correct update procedure
 func FromPredicate[S, A any](pred func(A) bool) func(func(S) A, func(S, A) S) Optional[S, A] {

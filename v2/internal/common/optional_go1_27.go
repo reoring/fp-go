@@ -146,3 +146,22 @@ func (l Optional[S, A]) ComposeLens[B any](ab Lens[A, B]) Optional[S, B] {
 func (l Optional[S, A]) ComposePrism[B any](ab Prism[A, B]) Optional[S, B] {
 	return OptionalComposePrism[S](ab)(l)
 }
+
+// ComposeIso composes this optional (S → A) with an isomorphism (A → B),
+// producing an optional (S → B) that is present exactly when this optional is.
+//
+// Type Parameters:
+//   - B: the target type of the isomorphism and focus type of the result
+//
+// Parameters:
+//   - ab: the isomorphism from A to B
+//
+// Returns:
+//   - Optional[S, B]: a new optional from S directly to B
+//
+// See Also:
+//   - ComposeLens: variant that composes with a Lens[A, B]
+//   - OptionalComposeIso: the equivalent package-level function
+func (l Optional[S, A]) ComposeIso[B any](ab Iso[A, B]) Optional[S, B] {
+	return OptionalComposeIso[S](ab)(l)
+}

@@ -212,6 +212,33 @@ func IsoComposeLens[S, A, B any](ab Lens[A, B]) func(Iso[S, A]) Lens[S, B] {
 	)
 }
 
+// IsoComposeOptional composes an Iso[S, A] with an Optional[A, B] into an Optional[S, B].
+// The Iso is used as a total Lens, so GetOption converts S to A and then applies the
+// Optional; Set converts S to A, sets B through the Optional and converts back.
+//
+// Type Parameters:
+//   - S: the source type of the Iso and of the result
+//   - A: the target type of the Iso and source type of the Optional
+//   - B: the focus type of the Optional and of the result
+//
+// Parameters:
+//   - ab: the Optional from A to B
+//
+// Returns:
+//   - func(Iso[S, A]) Optional[S, B]: composes a given Iso with ab
+//
+// See Also:
+//   - IsoComposeLens: the variant for a Lens[A, B]
+//   - IsoComposePrism: the variant for a Prism[A, B]
+//
+//go:inline
+func IsoComposeOptional[S, A, B any](ab Optional[A, B]) func(Iso[S, A]) Optional[S, B] {
+	return F.Flow2(
+		IsoAsLens[S, A],
+		LensComposeOptional[S](ab),
+	)
+}
+
 // IsoReverse swaps the direction of an isomorphism.
 // Given Iso[S, A], creates Iso[A, S] where Get and ReverseGet are swapped.
 //

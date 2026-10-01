@@ -82,3 +82,40 @@ func (p Iso[S, A]) Compose[B any](ab Iso[A, B]) Iso[S, B] {
 func (p Iso[S, A]) ComposeLens[B any](ab Lens[A, B]) Lens[S, B] {
 	return IsoComposeLens[S](ab)(p)
 }
+
+// ComposePrism composes this isomorphism (S → A) with a prism (A → B),
+// producing a prism (S → B). GetOption converts S to A and applies the
+// prism; ReverseGet builds A from B and converts it back to S.
+//
+// Type Parameters:
+//   - B: the focus type of the inner prism and of the resulting prism
+//
+// Parameters:
+//   - ab: the inner prism from A to B
+//
+// Returns:
+//   - Prism[S, B]: a new prism from S directly to B
+//
+// See Also:
+//   - IsoComposePrism: the equivalent package-level function
+func (p Iso[S, A]) ComposePrism[B any](ab Prism[A, B]) Prism[S, B] {
+	return IsoComposePrism[S](ab)(p)
+}
+
+// ComposeOptional composes this isomorphism (S → A) with an optional
+// (A → B), producing an optional (S → B).
+//
+// Type Parameters:
+//   - B: the focus type of the inner optional and of the resulting optional
+//
+// Parameters:
+//   - ab: the inner optional from A to B
+//
+// Returns:
+//   - Optional[S, B]: a new optional from S directly to B
+//
+// See Also:
+//   - IsoComposeOptional: the equivalent package-level function
+func (p Iso[S, A]) ComposeOptional[B any](ab Optional[A, B]) Optional[S, B] {
+	return IsoComposeOptional[S](ab)(p)
+}
