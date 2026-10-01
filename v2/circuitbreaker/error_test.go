@@ -326,7 +326,7 @@ func TestIsInfrastructureError(t *testing.T) {
 // TestIsTLSError tests the isTLSError function
 func TestIsTLSError(t *testing.T) {
 	t.Run("certificate invalid error is TLS error", func(t *testing.T) {
-		certErr := &x509.CertificateInvalidError{
+		certErr := x509.CertificateInvalidError{
 			Reason: x509.Expired,
 		}
 
@@ -336,7 +336,7 @@ func TestIsTLSError(t *testing.T) {
 	})
 
 	t.Run("unknown authority error is TLS error", func(t *testing.T) {
-		authErr := &x509.UnknownAuthorityError{}
+		authErr := x509.UnknownAuthorityError{}
 
 		result := isTLSError(authErr)
 
@@ -352,7 +352,7 @@ func TestIsTLSError(t *testing.T) {
 	})
 
 	t.Run("wrapped certificate error is detected", func(t *testing.T) {
-		certErr := &x509.CertificateInvalidError{
+		certErr := x509.CertificateInvalidError{
 			Reason: x509.Expired,
 		}
 		wrappedErr := fmt.Errorf("TLS handshake failed: %w", certErr)
@@ -363,7 +363,7 @@ func TestIsTLSError(t *testing.T) {
 	})
 
 	t.Run("wrapped unknown authority error is detected", func(t *testing.T) {
-		authErr := &x509.UnknownAuthorityError{}
+		authErr := x509.UnknownAuthorityError{}
 		wrappedErr := fmt.Errorf("certificate verification failed: %w", authErr)
 
 		result := isTLSError(wrappedErr)

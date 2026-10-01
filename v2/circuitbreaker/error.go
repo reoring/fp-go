@@ -294,13 +294,13 @@ func isInfrastructureError(err error) bool {
 // Thread Safety: This function is pure and safe for concurrent use.
 func isTLSError(err error) bool {
 	// Certificate verification failed
-	var certErr *x509.CertificateInvalidError
+	var certErr x509.CertificateInvalidError
 	if errors.As(err, &certErr) {
 		return true
 	}
 
 	// Unknown authority
-	var unknownAuthErr *x509.UnknownAuthorityError
+	var unknownAuthErr x509.UnknownAuthorityError
 	if errors.As(err, &unknownAuthErr) {
 		return true
 	}
