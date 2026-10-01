@@ -528,6 +528,30 @@ func OptionFilter[A any](pred Predicate[A]) OptionOperator[A, A] {
 	}
 }
 
+// OptionMonadFilter keeps ma if it is Some and its value satisfies pred, otherwise returns None.
+// This is the monadic form of OptionFilter.
+//
+// Type Parameters:
+//   - A: the value type
+//
+// Parameters:
+//   - ma: the Option to test
+//   - pred: the predicate the contained value must satisfy
+//
+// Returns:
+//   - Option[A]: ma when it is Some and pred holds, None otherwise
+//
+// See Also:
+//   - OptionFilter: the curried form
+//
+//go:inline
+func OptionMonadFilter[A any](ma Option[A], pred Predicate[A]) Option[A] {
+	if ma.s && pred(ma.a) {
+		return ma
+	}
+	return OptionNone[A]()
+}
+
 // OptionMonadFlap applies a value to a function wrapped in an Option.
 // This is the monadic form of Flap.
 //
