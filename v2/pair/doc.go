@@ -454,6 +454,15 @@ Type Classes:
   - ApplicativeTail[B, A, B1 any](Monoid[A]) Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]]
   - Applicative[B, A, B1 any](Monoid[A]) Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]]
 
+# Methods (Go 1.27+)
+
+On Go 1.27 and later, Pair values also offer MapHead, MapTail, Map, BiMap, Chain
+and Swap as methods, each equivalent to the function of the same name:
+
+	p := pair.MakePair("port", 8080).MapHead(strings.ToUpper).Map(strconv.Itoa)
+
+Ap remains a function only.
+
 # Related Packages
 
   - github.com/IBM/fp-go/v2/tuple - Position-based heterogeneous tuples

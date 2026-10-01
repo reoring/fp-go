@@ -116,6 +116,20 @@
 //	})
 //	result := parse("42")  // Some(42)
 //
+// # Methods (Go 1.27+)
+//
+// On Go 1.27 and later, Option values also offer the core operations as methods,
+// each equivalent to the function of the same name:
+//
+//	result := Some("42").
+//	    Chain(parse).
+//	    Map(N.Mul(2)).
+//	    GetOrElse(F.Constant(0))
+//
+// Available methods: Map, MapTo, Chain, ChainFirst, ChainTo, Fold, GetOrElse,
+// Alt and Filter. Ap and Flatten remain functions only. Method chains allocate
+// nothing, unlike F.Pipe pipelines of curried operators.
+//
 // # Subpackages
 //
 //   - option/number: Number conversion utilities (Atoi, Itoa)

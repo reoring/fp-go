@@ -1,7 +1,7 @@
 # Generic Methods Design (Go 1.27)
 
-Status: in progress — cleanup and `Option` done; `Either`, `Pair`, optics
-matrix and docs pending. Scope: `v2` only; the root (v1) module is frozen.
+Status: implemented on branch `go1.27-generic-methods`, except
+`ComposeTraversal` (deferred). Scope: `v2` only; the root (v1) module is frozen.
 
 ## Table of Contents
 
@@ -245,7 +245,7 @@ doc comment on the free function points to `Chain(F.Identity)`.
 | `BiMap[E2, B](f func(E) E2, g func(A) B) Either[E2, B]` | `EitherMonadBiMap` |
 | `Chain[B](f func(A) Either[E, B]) Either[E, B]` | `EitherMonadChain` |
 | `ChainFirst[B](f func(A) Either[E, B]) Either[E, A]` | `EitherMonadChainFirst` |
-| `ChainTo[B](mb Either[E, B]) Either[E, B]` | `EitherMonadChainTo` |
+| ~~`ChainTo`~~ | not a method: `EitherMonadChainTo` ignores its first argument by design (documented and tested), so a method would ignore its receiver and contradict `Option.ChainTo`, which propagates `None` |
 | `ChainLeft[E2](f func(E) Either[E2, A]) Either[E2, A]` | `EitherMonadChainLeft` |
 | ~~`Ap`~~ | not expressible, see "Shapes that cannot be methods" |
 | `Fold[B](onLeft func(E) B, onRight func(A) B) B` | `EitherMonadFold` |
@@ -276,15 +276,16 @@ cannot constrain a receiver type parameter.
 
 ### Optics completion
 
-- Add `Iso.ComposePrism` (free function `IsoComposePrism` exists).
-- Add free functions `IsoComposeOptional`, `OptionalComposeIso` and their
-  methods so the composition matrix is complete for the four struct optics.
+- ✅ `Iso.ComposePrism` (free function `IsoComposePrism` existed).
+- ✅ Free functions `IsoComposeOptional`, `OptionalComposeIso`, public
+  `iso.ComposeOptional`, `optional.ComposeIso`, and the methods
+  `Iso.ComposeOptional`, `Optional.ComposeIso`. The composition matrix is
+  complete for the four struct optics.
 - `ComposeTraversal`: `Traversal` is a function alias and has no methods, but
   `Lens.ComposeTraversal` returning a `Traversal` is expressible. Requires
   locating the existing traversal composition in `optics/traversal` first;
   deferred until then.
-- Fix `optics/README.md:176` and `optics/doc.go:158` to list the real
-  method names and the real matrix.
+- ✅ `optics/README.md` and `optics/doc.go` list the real method matrix.
 
 ### Cleanup
 
@@ -302,10 +303,10 @@ independently of this work).
 1. ✅ Cleanup (dead `Either` variants, optics doc drift).
 2. ✅ `Option` methods + tests + benchmark. Gate passed (see "Benchmark
    results").
-3. `Either` methods + tests.
-4. `Pair` methods + tests.
-5. Optics matrix completion and doc fixes.
-6. `DESIGN.md`, `option/doc.go`, `either/doc.go`, `pair/doc.go`, `README.md`.
+3. ✅ `Either` methods + tests (`Result` inherits them).
+4. ✅ `Pair` methods + tests.
+5. ✅ Optics matrix completion and doc fixes.
+6. ✅ `DESIGN.md`, `option/doc.go`, `either/doc.go`, `result/doc.go`, `pair/doc.go`.
 
 ### Files
 
@@ -314,13 +315,15 @@ independently of this work).
 | `internal/common/option_go1_27.go` | ✅ new, tagged |
 | `option/option_go1_27_test.go`, `option/examples_methods_go1_27_test.go` | ✅ new, tagged; tests live in `option` so examples document the public type |
 | `internal/common/option.go` | ✅ new untagged `OptionMonadFilter` |
-| `internal/common/either_go1_27.go`, `either_go1_27_test.go` | new, tagged |
-| `internal/common/either.go` | new untagged `EitherMonadGetOrElse`, `EitherMonadFilter` |
-| `pair/pair_go1_27.go`, `pair_go1_27_test.go` | new, tagged |
-| `internal/common/iso.go`, `optional.go` | new untagged `IsoComposeOptional`, `OptionalComposeIso` |
-| `internal/common/iso_go1_27.go`, `optional_go1_27.go` | `Iso.ComposePrism`, `Iso.ComposeOptional`, `Optional.ComposeIso` |
+| `internal/common/either_go1_27.go` | ✅ new, tagged |
+| `either/either_go1_27_test.go`, `either/examples_methods_go1_27_test.go`, `result/examples_methods_go1_27_test.go` | ✅ new, tagged |
+| `internal/common/either.go`, `either_filterable.go` | ✅ new untagged `EitherMonadGetOrElse`, `EitherMonadFilter` |
+| `pair/pair_go1_27.go`, `pair_go1_27_test.go` | ✅ new, tagged |
+| `internal/common/iso.go`, `lens_optional_compose.go`, `iso_optional_compose_test.go` | ✅ new untagged `IsoComposeOptional`, `OptionalComposeIso` + law tests |
+| `optics/iso/optional.go`, `optics/optional/optional.go` | ✅ public `iso.ComposeOptional`, `optional.ComposeIso` |
+| `internal/common/iso_go1_27.go`, `optional_go1_27.go` | ✅ `Iso.ComposePrism`, `Iso.ComposeOptional`, `Optional.ComposeIso` |
 | `either/core_any.go`, `core_pointers.go`, `idiomatic/result/core_any.go`, `core_pointers.go` | ✅ deleted |
-| `DESIGN.md`, `option/doc.go`, `either/doc.go`, `pair/doc.go`, `optics/README.md`, `optics/doc.go` | docs |
+| `DESIGN.md`, `option/doc.go`, `either/doc.go`, `result/doc.go`, `pair/doc.go`, `optics/README.md`, `optics/doc.go` | ✅ docs |
 
 ### Tests
 
@@ -351,6 +354,10 @@ Go 1.27.0, linux/amd64, mean of 5 runs:
 Methods cost the same as direct `Monad*` calls and are ~30× faster than the
 curried `F.Pipe` style, which allocates one closure per operator.
 
+For `Either` (`go test ./either/ -bench 'Either(Methods|Monad|Pipe)_'`), all
+three forms measure 0.43 ns/op with 0 allocations: the curried `Either`
+operators inline completely, so methods are at parity rather than faster.
+
 Compatibility check: with `GOTOOLCHAIN=go1.24.0`, `go vet` and `go test` for
 `option`, `internal/common` and `optics/...` pass (tagged files are excluded).
 
@@ -358,12 +365,18 @@ Compatibility check: with `GOTOOLCHAIN=go1.24.0`, `go vet` and `go test` for
 
 1. ~~**`Ap` orientation.**~~ Resolved: `Ap` cannot be a method (instantiation
    cycle), see "Shapes that cannot be methods".
-2. **Docs for alias types.** Package docs enumerate methods (recommended)
-   versus moving `Option`/`Either` out of `internal/common` into their
-   packages (large move, breaks the shared-implementation layout).
+2. ~~**Docs for alias types.**~~ Resolved: package docs (`option`, `either`,
+   `result`, `pair`) have a "Methods (Go 1.27+)" section listing the methods.
 3. ~~**Dead build variants.**~~ Resolved: deleted.
 4. **`Const`, `Builder`, `Tuple*`.** Expressible but low demand. Defer until
    requested.
+5. **`Either.ChainTo` semantics.** `either.MonadChainTo(Left(e), mb)` returns
+   `mb`, while `option.MonadChainTo(None, mb)` returns `None`. The Either
+   behavior is documented and tested, but it diverges from the usual
+   sequencing semantics (`*>`/`>>`). Changing it is a breaking behavior change
+   and out of scope here.
+6. **`ComposeTraversal`.** Deferred until the traversal composition in
+   `optics/traversal` is mapped.
 
 ## Non-Goals
 

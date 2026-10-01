@@ -87,6 +87,20 @@
 //   - UnwrapError: Convert Either back to (value, error) tuple
 //   - FromError: Create Either from error-returning functions
 //
+// # Methods (Go 1.27+)
+//
+// On Go 1.27 and later, Either values also offer the core operations as methods,
+// each equivalent to the function of the same name:
+//
+//	result := Eitherize1(strconv.Atoi)("21").
+//	    Map(N.Mul(2)).
+//	    GetOrElse(F.Constant1[error](0))
+//
+// Available methods: Map, MapTo, MapLeft, BiMap, Chain, ChainFirst, ChainLeft,
+// Fold, GetOrElse, Alt, Filter, Swap and ToOption. Ap, Flatten and ChainTo
+// remain functions only; ChainTo ignores its first argument, which would make a
+// method ignore its receiver.
+//
 // # Subpackages
 //
 //   - either/exec: Execute system commands returning Either

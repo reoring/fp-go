@@ -70,6 +70,18 @@
 //   - UnwrapError: Convert Result back to (value, error) tuple
 //   - FromError: Create Result from error-returning functions
 //
+// # Methods (Go 1.27+)
+//
+// Result is an alias of Either[error, A], so on Go 1.27 and later it has all
+// Either methods:
+//
+//	result := Eitherize1(strconv.Atoi)("21").
+//	    Chain(validate).
+//	    Map(N.Mul(2)).
+//	    GetOrElse(F.Constant1[error](0))
+//
+// See the either package for the list of methods.
+//
 // # Subpackages
 //
 //   - result/http: HTTP request builders returning Result

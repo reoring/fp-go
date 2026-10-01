@@ -148,12 +148,13 @@ result2 := parseAndDouble("")    // None
 result3 := parseAndDouble("abc") // None
 ```
 
-### Monadic vs Non-Monadic Forms
+### Monadic, Non-Monadic and Method Forms
 
-fp-go provides two forms for most operations:
+fp-go provides two forms for most operations, plus a third on Go 1.27 and later:
 
 1. **Curried form** (data last): Returns a function that can be composed
 2. **Monadic form** (data first): Takes all parameters at once
+3. **Method form** (receiver first, Go 1.27+): Called on the value itself
 
 ```go
 // Curried form - data last, returns a function
@@ -161,12 +162,16 @@ Map[A, B any](f func(A) B) func(Option[A]) Option[B]
 
 // Monadic form - data first, direct execution
 MonadMap[A, B any](fa Option[A], f func(A) B) Option[B]
+
+// Method form - receiver first, Go 1.27+
+func (fa Option[A]) Map[B any](f func(A) B) Option[B]
 ```
 
 **When to use each:**
 
 - **Curried form**: When building pipelines, composing functions, or creating reusable transformations
 - **Monadic form**: When you have all parameters available and want direct execution
+- **Method form**: When you hold a value and transform it step by step; no type arguments or `F.Pipe` needed
 
 ```go
 // Curried form - building a pipeline
@@ -179,7 +184,22 @@ result := transform(O.Some("hello"))
 
 // Monadic form - direct execution
 result := O.MonadMap(O.Some("hello"), strings.ToUpper)
+
+// Method form - direct execution, chained
+result := O.Some("hello").
+    Map(strings.ToUpper).
+    Filter(func(s string) bool { return len(s) > 3 }).
+    GetOrElse(func() string { return "DEFAULT" })
 ```
+
+Methods exist only on defined struct types: `Option`, `Either` (and therefore `Result`),
+`Pair`, and the optics `Lens`, `Prism`, `Optional`, `Iso` and `codec.Type`. Function-typed
+monads such as `IO`, `Reader` or `ReaderIOResult` are type aliases and cannot carry methods.
+Every method delegates to the monadic form and allocates nothing; for `Option`, a
+`Map → Chain → Fold` method chain is about 30× faster than the equivalent `F.Pipe3`
+pipeline. Operations whose receiver would have to be a nested type (`Ap`, `Flatten`) stay
+functions only. The method files are guarded by `//go:build go1.27`, so the module still
+builds on older Go versions without them. See [GENERIC_METHODS_DESIGN.md](./GENERIC_METHODS_DESIGN.md).
 
 ### Further Reading on Data-Last Pattern
 

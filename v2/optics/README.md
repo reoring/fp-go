@@ -177,8 +177,8 @@ On Go 1.27 and later, `Lens`, `Prism`, `Optional` and `Iso` values carry generic
 |----------|-----------|---------------|----------------|-------------------|--------------|
 | `Lens[S, A]` | `Lens` | — | `Optional` | `Optional` | `Lens` |
 | `Prism[S, A]` | `Prism` | `Optional` | — | `Optional` | `Prism` |
-| `Optional[S, A]` | `Optional` | `Optional` | `Optional` | — | — |
-| `Iso[S, A]` | `Iso` | `Lens` | — | — | — |
+| `Optional[S, A]` | `Optional` | `Optional` | `Optional` | — | `Optional` |
+| `Iso[S, A]` | `Iso` | `Lens` | `Prism` | `Optional` | — |
 
 `Traversal` is a function type and has no methods. On Go versions before 1.27 the methods are not available; the package-level functions work on every supported Go version and are equivalent:
 

@@ -166,8 +166,11 @@ composition hierarchy:
 	Optional.Compose(Opt)      Optional
 	Optional.ComposeLens(Lens) Optional
 	Optional.ComposePrism(Pr)  Optional
+	Optional.ComposeIso(Iso)   Optional
 	Iso.Compose(Iso)           Iso
 	Iso.ComposeLens(Lens)      Lens
+	Iso.ComposePrism(Prism)    Prism
+	Iso.ComposeOptional(Opt)   Optional
 
 Traversal is a function type and has no methods. On Go versions before 1.27 the
 methods are not available; the package-level functions (lens.Compose,
