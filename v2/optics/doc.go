@@ -148,29 +148,35 @@ Use traversals when:
 The real power of optics comes from composition. Optics of the same or compatible
 types can be composed to create more complex accessors.
 
-# Automatic Cross-Optic Composition
+# Composition Methods (Go 1.27+)
 
-Every optic automatically exposes composition methods with all other optic types.
-You do not need to choose a separate sub-package for each combination — each optic
-value carries the full set of Compose* methods for every compatible target type.
+On Go 1.27 and later, Lens, Prism, Optional and Iso values carry generic
+composition methods. Compose joins an optic with another optic of the same kind;
+ComposeX joins it with an optic of kind X. The result type follows the
+composition hierarchy:
 
-For example, a Lens[S, A] already has methods such as ComposeLens, ComposePrism,
-ComposeOptional, ComposeIso, and ComposeTraversal, each returning the correctly-typed
-result optic according to the composition hierarchy. The same applies to Prism,
-Optional, Iso, and Traversal.
+	Lens.Compose(Lens)         Lens
+	Lens.ComposeIso(Iso)       Lens
+	Lens.ComposePrism(Prism)   Optional
+	Lens.ComposeOptional(Opt)  Optional
+	Prism.Compose(Prism)       Prism
+	Prism.ComposeIso(Iso)      Prism
+	Prism.ComposeLens(Lens)    Optional
+	Prism.ComposeOptional(Opt) Optional
+	Optional.Compose(Opt)      Optional
+	Optional.ComposeLens(Lens) Optional
+	Optional.ComposePrism(Pr)  Optional
+	Iso.Compose(Iso)           Iso
+	Iso.ComposeLens(Lens)      Lens
 
-Go 1.27 — generic methods on instances:
+Traversal is a function type and has no methods. On Go versions before 1.27 the
+methods are not available; the package-level functions (lens.Compose,
+prism.Compose, and so on) work on every supported Go version and are equivalent:
 
-Go 1.27 lifts the restriction that methods cannot introduce their own type parameters.
-As a result, every optic instance exposes a single generic Compose method that accepts
-any compatible optic and returns the right result type, all inferred by the compiler.
-The sub-package helpers (lens.Compose, etc.) remain available for compatibility, but
-the instance method is the recommended, more concise form:
-
-	// Go 1.27+: single generic method, no sub-package import needed
+	// Go 1.27+
 	companyCityLens := addressLens.Compose(cityLens)
 
-	// All Go versions: explicit sub-package helper (still works)
+	// every supported Go version
 	companyCityLens := F.Pipe1(addressLens, lens.Compose[Company](cityLens))
 
 	type Company struct {

@@ -169,23 +169,26 @@ doubled := F.Pipe2(
 
 The real power of optics comes from composition. Optics can be composed with each other to create more complex focusing operations, following a clear hierarchy where more specific optics can be converted to more general ones.
 
-### 🤝 Automatic Cross-Optic Composition
+### 🤝 Composition Methods (Go 1.27+)
 
-Every optic automatically exposes composition methods with **all other optic types**. You do not need to pick a separate sub-package per combination — each optic value carries the full set of `Compose*` methods for every compatible target type.
+On Go 1.27 and later, `Lens`, `Prism`, `Optional` and `Iso` values carry generic composition methods. `Compose` joins an optic with another optic of the **same kind**; `ComposeX` joins it with an optic of kind `X`. The result type follows the composition hierarchy below.
 
-For example, a `Lens[S, A]` already has methods such as `ComposeLens`, `ComposePrism`, `ComposeOptional`, `ComposeIso`, and `ComposeTraversal`, each returning the correctly-typed result optic according to the composition hierarchy. The same applies to `Prism`, `Optional`, `Iso`, and `Traversal`.
+| Receiver | `Compose` | `ComposeLens` | `ComposePrism` | `ComposeOptional` | `ComposeIso` |
+|----------|-----------|---------------|----------------|-------------------|--------------|
+| `Lens[S, A]` | `Lens` | — | `Optional` | `Optional` | `Lens` |
+| `Prism[S, A]` | `Prism` | `Optional` | — | `Optional` | `Prism` |
+| `Optional[S, A]` | `Optional` | `Optional` | `Optional` | — | — |
+| `Iso[S, A]` | `Iso` | `Lens` | — | — | — |
 
-> **Go 1.27 — generic methods on instances**
->
-> Go 1.27 lifts the restriction that methods cannot introduce their own type parameters. As a result, every optic instance exposes a single generic `Compose[B](other)` method that accepts any compatible optic and returns the right result type, all inferred by the compiler. The sub-package helpers (`lens.Compose`, `PL.Compose`, etc.) remain available for compatibility, but the instance method is the recommended, more concise form:
->
-> ```go
-> // Go 1.27+: single generic method, no sub-package import needed
-> companyCityLens := addressLens.Compose(cityLens)
->
-> // All Go versions: explicit sub-package helper (still works)
-> companyCityLens := F.Pipe1(addressLens, lens.Compose[Company](cityLens))
-> ```
+`Traversal` is a function type and has no methods. On Go versions before 1.27 the methods are not available; the package-level functions work on every supported Go version and are equivalent:
+
+```go
+// Go 1.27+
+companyCityLens := addressLens.Compose(cityLens)
+
+// every supported Go version
+companyCityLens := F.Pipe1(addressLens, lens.Compose[Company](cityLens))
+```
 
 ### 📐 Composition Hierarchy
 
