@@ -1349,7 +1349,8 @@ func TestMonadTapLeft(t *testing.T) {
 		errA := errors.New("a")
 		f := func(err error) SeqResult[int] { seen = append(seen, err.Error()); return Of(0) }
 		seq := iter.From(R.Of(1), R.Left[int](errA), R.Of(2))
-		slices.Collect(MonadTapLeft(seq, f))
+		for range MonadTapLeft(seq, f) {
+		}
 		assert.Equal(t, []string{"a"}, seen)
 	})
 }
@@ -1424,7 +1425,8 @@ func TestMonadChainFirstIOK(t *testing.T) {
 		logIO := func(n int) func() string { return func() string { called = true; return "ok" } }
 		result := MonadChainFirstIOK(Of(42), logIO)
 		assert.False(t, called)
-		slices.Collect(result)
+		for range result {
+		}
 		assert.True(t, called)
 	})
 }
@@ -1513,7 +1515,8 @@ func TestMonadChainIOK(t *testing.T) {
 		f := func(n int) func() string { return func() string { called = true; return "ok" } }
 		result := MonadChainIOK(Of(1), f)
 		assert.False(t, called)
-		slices.Collect(result)
+		for range result {
+		}
 		assert.True(t, called)
 	})
 }
@@ -1590,7 +1593,8 @@ func TestMonadChainIOResultK(t *testing.T) {
 		}
 		result := MonadChainIOResultK(Of(1), f)
 		assert.False(t, called)
-		slices.Collect(result)
+		for range result {
+		}
 		assert.True(t, called)
 	})
 
@@ -1683,7 +1687,8 @@ func TestMonadChainFirstIOResultK(t *testing.T) {
 		}
 		result := MonadChainFirstIOResultK(Of(1), f)
 		assert.False(t, called)
-		slices.Collect(result)
+		for range result {
+		}
 		assert.True(t, called)
 	})
 
