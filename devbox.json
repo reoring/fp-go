@@ -1,0 +1,18 @@
+{
+  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.18.0/.schema/devbox.schema.json",
+  "packages": ["go@1.27.0"],
+  "shell": {
+    "scripts": {
+      "vet": [
+        "go vet ./...",
+        "(cd v2 && go vet ./...)",
+        "(cd gen/v2 && go vet ./...)"
+      ],
+      "test": [
+        "go test ./...",
+        "(cd v2 && go test ./...)",
+        "(cd gen/v2 && go test ./...)"
+      ]
+    }
+  }
+}
